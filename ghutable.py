@@ -1,14 +1,16 @@
+from typing import Text
 import warnings
 
 
 class GhuTable:
-    def __init__(self, colunas: list, title: str = None, title_style: str = 'center', table_style: str = 'center'):
+    def __init__(self, colunas: list, title: str = None, title_style: str = 'c'):
         self.__colunas = colunas  # Lista com o nome das colunas
         self.__title = title  # Título da tabela, caso tenha.
 
         self.__tabela = {}
         self.__tam = {}  # Dicionário com a largura das colunas
         self.__estilo = {}  # Dicionário com o estilo de cada coluna
+        self.__estilo_title = title_style
 
         self.__rows = []
         self.__n_linhas = 0  # número de itens nas colunas
@@ -16,7 +18,7 @@ class GhuTable:
         for coluna in colunas:
             self.__tabela[coluna] = []
             self.__tam[coluna] = len(coluna)
-            self.__estilo[coluna] = 'center'
+            self.__estilo[coluna] = 'c'
 
         self.pad = 1  # Distância da linha vertical
 
@@ -30,6 +32,34 @@ class GhuTable:
         self.can = '+'
         self.ver = '|'
         self.hor = '-'
+        
+    def __diff(self, coluna):
+        for col1 in self.__colunas:
+            if col1 in coluna:
+                return False
+
+        return True
+
+    def __style(self, col: str, text: str, tam: int) -> str:
+        estilo = self.__estilo[col]
+
+        if estilo == 'c':
+            return text.center(tam)
+        elif estilo == 'd':
+            return text.rjust(tam - self.pad) + ' '*self.pad
+        elif estilo == 'e':
+            return ' '*self.pad + text.ljust(tam - self.pad)
+
+    def __style_title(self, tam) -> str:
+        estilo = self.__estilo_title
+        text = self.__title
+
+        if estilo == 'c':
+            return text.center(tam)
+        elif estilo == 'd':
+            return text.rjust(tam)
+        elif estilo == 'e':
+            return text.ljust(tam)
 
     def __str__(self):
         # Criando a string do título
@@ -37,7 +67,7 @@ class GhuTable:
         if self.__title:
             self.__largura = self.__att_largura()
             titulo = self.can + self.hor * self.__largura + self.can + '\n'
-            titulo += self.ver + self.__title.center(self.__largura) + self.ver + '\n'
+            titulo += self.ver + self.__style_title(self.__largura) + self.ver + '\n'
 
         # Criando a string do cabeçalho das colunas
         cabeca = self.ver
@@ -45,7 +75,7 @@ class GhuTable:
         for coluna in self.__colunas:
             tam = self.__tam[coluna] + 2 * self.pad
             div += self.hor * tam + self.can
-            cabeca += coluna.center(tam) + self.ver
+            cabeca += self.__style(coluna, coluna, tam) + self.ver
 
         div += '\n'
         cabeca += '\n'
@@ -58,7 +88,7 @@ class GhuTable:
                 tabela += self.ver
                 for j, key in enumerate(self.__tabela):
                     tam = self.__tam[key] + 2 * self.pad
-                    tabela += self.__tabela[key][i].center(tam) + self.ver
+                    tabela += self.__style(key, self.__tabela[key][i], tam) + self.ver
 
                 tabela += '\n' + div
 
@@ -66,13 +96,6 @@ class GhuTable:
 
     def __repr__(self):
         return str(self)
-    
-    def __diff(self, coluna):
-        for col1 in self.__colunas:
-            if col1 in coluna:
-                return False
-
-        return True
 
     def __add__(self, other):
         if isinstance(other, GhuTable):
@@ -93,6 +116,9 @@ class GhuTable:
         
         for row in self.__rows:
             new.add_linha(row)
+
+        for i, k in enumerate(self.__estilo):
+            new.__estilo[k] = self.__estilo.copy()
 
         new.pad = self.pad
         new.ver = self.ver
@@ -129,6 +155,11 @@ class GhuTable:
         else:
             raise TypeError('O título precisa ser do tipo `str`.')
 
+    def muda_estilo(self, coluna:str, estilo: str):
+        if coluna in self.__colunas:
+            if estilo.lower() in ['c', 'd', 'e']:
+                self.__estilo[coluna] = estilo.lower()
+
     def ordenar_por(self, coluna: str, revert: bool = False) -> object:
         """Ordena a tabela em relação a um coluna (bubblesort)"""
 
@@ -148,21 +179,4 @@ class GhuTable:
                         col[j], col[j-1] = col[j-1], col[j]
 
         return new_table
-        
-
-if __name__ == '__main__':
-    # ZONA DE TESTES
-    a = GhuTable(['Nome'])
-    a.add_linha(['Erick'])
-
-    b = GhuTable(['Idade'])
-    b.add_linha([22])
     
-    print('Tabela A:')
-    print(a)
-
-    print('Tabela B:')
-    print(b)
-
-    print('Tabela A + B:')
-    print(a+b)
